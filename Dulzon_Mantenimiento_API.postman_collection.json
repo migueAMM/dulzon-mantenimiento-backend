@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "Dulzón Mantenimiento API",
+    "description": "Colección de endpoints para el sistema de mantenimiento",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 Autenticación",
+      "item": [
+        {
+          "name": "Registro de Usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan García\",\n  \"email\": \"juan@dulzon.com\",\n  \"password\": \"password123\",\n  \"rol\": \"SUPERVISOR\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/registro",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "auth", "registro"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@dulzon.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Mantenimiento - OPERADOR",
+      "item": [
+        {
+          "name": "Programar Mantención",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maquinaId\": 1,\n  \"turnoId\": 1,\n  \"fechaProgramada\": \"2024-04-25\",\n  \"actividades\": [\n    {\n      \"descripcion\": \"Inspección visual del equipo\",\n      \"orden\": 1,\n      \"duracionEstimadaMinutos\": 30\n    },\n    {\n      \"descripcion\": \"Limpieza de componentes\",\n      \"orden\": 2,\n      \"duracionEstimadaMinutos\": 60\n    },\n    {\n      \"descripcion\": \"Lubricación y ajuste\",\n      \"orden\": 3,\n      \"duracionEstimadaMinutos\": 20\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/programar?operadorId=1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "programar"],
+              "query": [
+                {
+                  "key": "operadorId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍🔧 Mantenimiento - SUPERVISOR",
+      "item": [
+        {
+          "name": "Iniciar Mantención",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/1/iniciar",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "1", "iniciar"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar Actividad",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/actividad/1/iniciar",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "actividad", "1", "iniciar"]
+            }
+          }
+        },
+        {
+          "name": "Cerrar Actividad",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/actividad/1/cerrar",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "actividad", "1", "cerrar"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Observación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texto\": \"Se encontró una pieza desgastada que requiere reemplazo inmediato\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/actividad/1/observacion?supervisorId=2",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "actividad", "1", "observacion"],
+              "query": [
+                {
+                  "key": "supervisorId",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Terminar Mantención",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"texto\": \"Mantención completada exitosamente. Todos los componentes funcionando correctamente\"\n  }\n]"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/1/terminar?supervisorId=2",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "1", "terminar"],
+              "query": [
+                {
+                  "key": "supervisorId",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Consultas - TODOS",
+      "item": [
+        {
+          "name": "Ver Avance de Mantención",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/1/avance",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "1", "avance"]
+            }
+          }
+        },
+        {
+          "name": "Listar Mantenciones en Proceso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/en-proceso",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "en-proceso"]
+            }
+          }
+        },
+        {
+          "name": "Listar por Estado (PROGRAMADO)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento?estado=PROGRAMADO",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento"],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "PROGRAMADO"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar por Estado (TERMINADO)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento?estado=TERMINADO",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento"],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "TERMINADO"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mantenciones Programadas Hoy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/mantenimiento/hoy",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "mantenimiento", "hoy"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
