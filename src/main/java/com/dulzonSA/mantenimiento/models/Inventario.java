@@ -1,14 +1,9 @@
 package com.dulzonSA.mantenimiento.models;
 
 import jakarta.persistence.*;
-import lombok.*;
 
 @Entity
 @Table(name = "inventario")
-@Getter @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Inventario {
 
     @Id
@@ -25,8 +20,30 @@ public class Inventario {
 
     private String unidadMedida;
 
-    // Asociación opcional a una carta gantt (insumos reservados para esa mantención)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "carta_gantt_id")
     private CartaGantt cartaGantt;
+
+    public Inventario() {}
+
+    // Getters y Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getNombreInsumo() { return nombreInsumo; }
+    public void setNombreInsumo(String nombreInsumo) { this.nombreInsumo = nombreInsumo; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public Integer getCantidadDisponible() { return cantidadDisponible; }
+    public void setCantidadDisponible(Integer cantidadDisponible) {
+        this.cantidadDisponible = cantidadDisponible;
+    }
+
+    public String getUnidadMedida() { return unidadMedida; }
+    public void setUnidadMedida(String unidadMedida) { this.unidadMedida = unidadMedida; }
+
+    public CartaGantt getCartaGantt() { return cartaGantt; }
+    public void setCartaGantt(CartaGantt cartaGantt) { this.cartaGantt = cartaGantt; }
 }

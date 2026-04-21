@@ -1,403 +1,289 @@
-# 🔧 Sistema de Mantenimiento Dulzón S.A. - Backend
+# 🔧 Dulzón Mantenimiento — Backend
 
-Backend REST API para el sistema de control de mantenimiento preventivo de máquinas en la planta Dulzón S.A.
-
-## 📋 Tabla de Contenidos
-- [Características](#características)
-- [Requisitos](#requisitos)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Ejecución](#ejecución)
-- [API Endpoints](#api-endpoints)
-- [Base de Datos](#base-de-datos)
+Spring Boot 3.3.4 · Java 21 · MariaDB · Sin Lombok
 
 ---
 
-## ✨ Características
+## ✅ Qué cambió respecto al proyecto original
 
-✅ **Autenticación y Autorización**
-- Login/Registro de usuarios
-- Roles: ADMIN, OPERADOR, SUPERVISOR
-- Encriptación de contraseñas con BCrypt
-
-✅ **Gestión de Mantenimiento**
-- Programación de mantenciones (OPERADOR)
-- Inicio/cierre de actividades (SUPERVISOR)
-- Registro de observaciones en tiempo real
-- Cálculo automático de desviaciones (estimado vs real)
-
-✅ **Inventario de Máquinas**
-- Registro de máquinas por tipo
-- Turnos y horarios de trabajo
-- Historial de mantenciones por máquina
-
-✅ **Reportes**
-- Avance de mantenciones (porcentaje, desviaciones)
-- Listado de mantenciones en proceso
-- Filtrado por estado y fecha
+| Problema original | Solución aplicada |
+|---|---|
+| `package lombok does not exist` | Eliminado completamente — getters/setters manuales |
+| Spring Boot 4.0.0 (beta inestable) | Cambiado a 3.3.4 (versión estable) |
+| Driver `mysql-connector-j` | Reemplazado por `mariadb-java-client` |
+| Java 26 (no disponible) | Configurado para Java 21 LTS |
+| `@Builder` sin Lombok | Creación de objetos con `new + setters` |
 
 ---
 
-## 🔧 Requisitos
+## 📋 Requisitos para correr el proyecto
 
-- **Java 26** o superior
-- **MariaDB 10.x** o superior
-- **Maven 3.6+** (incluido en el proyecto con mvnw.cmd)
-- **Windows PowerShell** (para ejecutar scripts)
+Necesitas tener instalado exactamente **3 cosas**:
 
----
+### 1. Java 21 (o superior)
 
-## 📦 Instalación
-
-### 1. Clonar o descargar el proyecto
+**Verificar si ya lo tienes:**
 ```bash
-cd C:\Users\USUARIO\IdeaProjects\mantenimientoDulzonBackend
+java -version
+```
+Debe mostrar algo como: `openjdk version "21.x.x"`
+
+**Si no lo tienes — descargar Java 21 LTS:**
+- Windows / Mac / Linux: https://adoptium.net/es/temurin/releases/?version=21
+- Descarga el instalador `.msi` (Windows) o `.pkg` (Mac) y ejecútalo
+
+**Verificar después de instalar:**
+```bash
+java -version   # Debe mostrar 21.x.x
 ```
 
-### 2. Asegurar que MariaDB está instalado
+---
+
+### 2. Maven (opcional — el proyecto lo incluye)
+
+El proyecto ya incluye **Maven Wrapper** (`mvnw` / `mvnw.cmd`), que descarga Maven automáticamente la primera vez. **No necesitas instalar Maven por separado.**
+
+Si prefieres instalarlo globalmente:
+- Descargar: https://maven.apache.org/download.cgi
+- Guía de instalación: https://maven.apache.org/install.html
+
+**Verificar:**
 ```bash
-# Verificar que MariaDB está corriendo
-# Abrir Services (Win + R → services.msc) y buscar "MySQL80" o similar
+mvn --version    # Si está instalado globalmente
+./mvnw --version # Usando el wrapper del proyecto (Linux/Mac)
+mvnw.cmd --version # Usando el wrapper (Windows)
 ```
 
-### 3. Crear la base de datos (opcional, se crea automáticamente)
+---
+
+### 3. MariaDB
+
+**Verificar si ya lo tienes corriendo:**
+```bash
+# Linux
+sudo systemctl status mariadb
+
+# Mac
+brew services list | grep mariadb
+
+# Windows — abrir Services (Win+R → services.msc) y buscar "MariaDB" o "MySQL80"
+```
+
+**Si no lo tienes — opciones de instalación:**
+
+| Opción | Recomendado para | Link |
+|---|---|---|
+| MariaDB oficial | Producción | https://mariadb.org/download/ |
+| XAMPP (incluye MariaDB) | Desarrollo fácil | https://www.apachefriends.org |
+| Laragon (Windows) | Desarrollo Windows | https://laragon.org/download/ |
+
+**Después de instalar, crear usuario y verificar conexión:**
 ```sql
-CREATE DATABASE IF NOT EXISTS dulzon_mantenimiento DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Conectar a MariaDB como root
+mysql -u root -p
+
+-- Verificar que funciona (debe mostrar la versión)
+SELECT VERSION();
+
+-- La base de datos se crea sola al arrancar el proyecto
+-- (gracias a createDatabaseIfNotExist=true en application.properties)
 ```
 
----
-
-## ⚙️ Configuración
-
-### application.properties
-```ini
-# Base de datos
-spring.datasource.url=jdbc:mysql://localhost:3306/dulzon_mantenimiento?createDatabaseIfNotExist=true&serverTimezone=UTC
-spring.datasource.username=root
+**Si tu contraseña de root NO es `1234`**, edita el archivo:
+```
+src/main/resources/application.properties
+```
+Cambia la línea:
+```properties
 spring.datasource.password=1234
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-
-# JPA/Hibernate
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MariaDBDialect
-
-# Puerto del servidor
-server.port=8080
 ```
-
-**⚠️ IMPORTANTE:**
-- Cambiar `spring.datasource.password` con la contraseña real de MariaDB
-- Cambiar `spring.datasource.username` si no es "root"
-- En producción: cambiar `ddl-auto` a `validate`
+Por tu contraseña real.
 
 ---
 
-## 🚀 Ejecución
+## 🚀 Cómo arrancar
 
-### Opción 1: Ejecutar con Maven (recomendado para desarrollo)
-```bash
-cd C:\Users\USUARIO\IdeaProjects\mantenimientoDulzonBackend
-
-# Descargar dependencias, compilar y ejecutar
-.\mvnw.cmd spring-boot:run
-```
-
-### Opción 2: Compilar y ejecutar el JAR
-```bash
-# Compilar y empaquetar
-.\mvnw.cmd clean package -DskipTests
-
-# Ejecutar
-java -jar target/mantenimiento-0.0.1-SNAPSHOT.jar
-```
-
-### ✅ Verificar que está corriendo
-```bash
-# Abrir en el navegador:
-http://localhost:8080/api/auth/login
-
-# Debería retornar error (esperado, ya que falta el body)
-# Si ves un JSON con error, ¡está funcionando!
-```
-
----
-
-## 📡 API Endpoints
-
-### 🔐 Autenticación
-
-**POST** `/api/auth/login`
-```json
-{
-  "email": "usuario@dulzon.com",
-  "password": "contraseña"
-}
-```
-Response: Usuario autenticado
-
-**POST** `/api/auth/registro`
-```json
-{
-  "nombre": "Juan García",
-  "email": "juan@dulzon.com",
-  "password": "contraseña",
-  "rol": "SUPERVISOR"
-}
-```
-Response: Usuario creado
-
----
-
-### 📋 Mantenimiento
-
-#### OPERADOR: Programar una mantención
-**POST** `/api/mantenimiento/programar?operadorId=1`
-```json
-{
-  "maquinaId": 1,
-  "turnoId": 1,
-  "fechaProgramada": "2024-04-25",
-  "actividades": [
-    {
-      "descripcion": "Inspección visual",
-      "orden": 1,
-      "duracionEstimadaMinutos": 30
-    },
-    {
-      "descripcion": "Limpieza de componentes",
-      "orden": 2,
-      "duracionEstimadaMinutos": 60
-    },
-    {
-      "descripcion": "Lubricación",
-      "orden": 3,
-      "duracionEstimadaMinutos": 20
-    }
-  ]
-}
-```
-
-#### SUPERVISOR: Iniciar mantención
-**PUT** `/api/mantenimiento/{id}/iniciar`
-- La cuadrilla llegó → registra inicio exacto
-- Response: CartaGantt con estado EN_PROCESO
-
-#### SUPERVISOR: Iniciar actividad
-**PUT** `/api/mantenimiento/actividad/{actividadId}/iniciar`
-- Response: ActividadMantenimiento con estado EN_PROCESO
-
-#### SUPERVISOR: Cerrar actividad
-**PUT** `/api/mantenimiento/actividad/{actividadId}/cerrar`
-- Response: ActividadMantenimiento con estado COMPLETADA
-
-#### SUPERVISOR: Registrar observación
-**POST** `/api/mantenimiento/actividad/{actividadId}/observacion?supervisorId=2`
-```json
-{
-  "texto": "Pieza desgastada encontrada - requiere reemplazo"
-}
-```
-
-#### SUPERVISOR: Terminar mantención
-**PUT** `/api/mantenimiento/{id}/terminar?supervisorId=2`
-```json
-[
-  {
-    "texto": "Mantención completada exitosamente"
-  }
-]
-```
-
-#### TODOS: Ver avance
-**GET** `/api/mantenimiento/{id}/avance`
-Response: Incluye porcentaje de avance, desviaciones, actividades completadas
-
-#### TODOS: Listar en proceso
-**GET** `/api/mantenimiento/en-proceso`
-Response: Todas las mantenciones actualmente en ejecución
-
-#### TODOS: Listar por estado
-**GET** `/api/mantenimiento?estado=PROGRAMADO`
-Estados disponibles: PROGRAMADO, EN_PROCESO, TERMINADO
-
-#### TODOS: Hoy
-**GET** `/api/mantenimiento/hoy`
-Response: Mantenciones programadas para hoy
-
----
-
-## 🗄️ Base de Datos
-
-### Tablas Principales
-
-| Tabla | Descripción |
-|-------|-------------|
-| `usuarios` | Usuarios del sistema (ADMIN, OPERADOR, SUPERVISOR) |
-| `roles` | Roles disponibles |
-| `maquinas` | Máquinas de la planta |
-| `turnos` | Turnos de trabajo (MAÑANA, TARDE, NOCHE) |
-| `cartas_gantt` | Órdenes de mantenimiento |
-| `actividades_mantenimiento` | Actividades dentro de una orden |
-| `observaciones` | Notas registradas durante mantención |
-| `inventario` | Insumos y materiales |
-
-### Diagrama ER Simplificado
-```
-USUARIO
-  ├─ rol_id → ROLES
-  └─ cartas_gantt (operador_id)
-
-CARTAS_GANTT
-  ├─ maquina_id → MAQUINAS
-  ├─ operador_id → USUARIOS
-  ├─ turno_id → TURNOS
-  ├─ actividades_mantenimiento (carta_gantt_id)
-  └─ observaciones (carta_gantt_id)
-
-ACTIVIDADES_MANTENIMIENTO
-  └─ observaciones (actividad_id)
-```
-
-### Data Initializer (Seed Data)
-
-Al iniciar, se crean automáticamente:
-
-**Roles:**
-- ADMIN
-- OPERADOR
-- SUPERVISOR
-
-**Turnos:**
-- MAÑANA: 06:00 - 14:00
-- TARDE: 14:00 - 22:00
-- NOCHE: 22:00 - 06:00
-
-**Máquinas (8):**
-- 2x Deshuesadoras
-- 1x Prensa Hidráulica
-- 2x Marmita de Cocción
-- 1x Bomba Centrífuga
-- 1x Mesa Enfriar/Envasar
-- 1x Extractor de Cocción
-
----
-
-## 🔒 Seguridad
-
-### ✅ Implementado
-- Encriptación de contraseñas con BCrypt (strength=10)
-- Validación de datos de entrada (Jakarta Bean Validation)
-- Manejo centralizado de excepciones
-
-### ⚠️ Pendiente para Producción
-- Implementar JWT para autenticación stateless
-- Agregar CORS si es necesario
-- HTTPS/SSL en producción
-- Rate limiting
-- Auditoría de cambios
-
----
-
-## 📊 Logging
-
-```ini
-# Nivel de logs configurados en application.properties
-
-logging.level.root=INFO
-logging.level.com.dulzonSA.mantenimiento=DEBUG
-logging.level.org.hibernate.SQL=DEBUG
-logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
-```
-
-En desarrollo, verás:
-- SQL ejecutado (hibernate.SQL)
-- Valores de parámetros (BasicBinder)
-- Logs de la aplicación (DEBUG level)
-
----
-
-## 🧪 Testing
+### Paso 1 — Verificar requisitos automáticamente
 
 ```bash
-# Ejecutar tests unitarios
-.\mvnw.cmd test
+# Linux / Mac
+bash verificar-requisitos.sh
 
-# Ejecutar sin tests
-.\mvnw.cmd clean package -DskipTests
+# Windows (doble clic o desde CMD)
+verificar-requisitos.bat
+```
+
+### Paso 2 — Arrancar el servidor
+
+```bash
+# Linux / Mac
+bash arrancar.sh
+
+# Windows
+arrancar.bat
+```
+
+O manualmente:
+```bash
+# Linux / Mac
+./mvnw spring-boot:run
+
+# Windows
+mvnw.cmd spring-boot:run
+```
+
+### Paso 3 — Verificar que funciona
+
+Abre el navegador en:
+```
+http://localhost:8080/api/mantenimiento/hoy
+```
+Debe devolver `[]` (lista vacía, normal al inicio).
+
+---
+
+## 🧪 Ejecutar los tests (no necesita MariaDB)
+
+Los tests usan H2 (base de datos en memoria), así que **funcionan sin tener MariaDB instalado**.
+
+```bash
+# Linux / Mac
+./mvnw test
+
+# Windows
+mvnw.cmd test
+
+# O con el script incluido
+bash arrancar.sh test       # Linux/Mac
+arrancar.bat test           # Windows
+```
+
+**Tests incluidos (8 en total):**
+- ✅ Flujo completo: programar → iniciar → actividades → terminar
+- ✅ Cálculo correcto de porcentaje de avance
+- ✅ Error al iniciar una mantención ya en proceso
+- ✅ Error al terminar con actividades abiertas
+- ✅ Login con credenciales correctas
+- ✅ Login con password incorrecta → error
+- ✅ Login con email inexistente → error
+- ✅ Registro con email duplicado → error
+- ✅ Observación guardada en actividad
+- ✅ Listar por estado devuelve lista correcta
+
+---
+
+## 📡 Endpoints disponibles
+
+### Autenticación
+```
+POST /api/auth/registro
+POST /api/auth/login
+```
+
+### Operador (programar)
+```
+POST /api/mantenimiento/programar?operadorId={id}
+```
+
+### Supervisor (ejecutar)
+```
+PUT  /api/mantenimiento/{id}/iniciar
+PUT  /api/mantenimiento/actividad/{id}/iniciar
+PUT  /api/mantenimiento/actividad/{id}/cerrar
+POST /api/mantenimiento/actividad/{id}/observacion?supervisorId={id}
+PUT  /api/mantenimiento/{id}/terminar?supervisorId={id}
+```
+
+### Consultas (todos)
+```
+GET /api/mantenimiento/hoy
+GET /api/mantenimiento/en-proceso
+GET /api/mantenimiento?estado=PROGRAMADO
+GET /api/mantenimiento/{id}/avance
+GET /api/reportes/dashboard
+GET /api/reportes/historial
+GET /api/reportes/{id}
 ```
 
 ---
 
-## 📝 Estructura del Proyecto
+## 🗂️ Estructura del proyecto
 
 ```
-mantenimientoDulzonBackend/
+dulzon-mantenimiento-backend/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/dulzonSA/mantenimiento/
-│   │   │   ├── controllers/         # REST Controllers
-│   │   │   ├── services/            # Lógica de negocio
-│   │   │   ├── models/              # Entidades JPA
-│   │   │   ├── repositories/        # Data Access (Spring Data JPA)
-│   │   │   ├── dto/                 # Data Transfer Objects
-│   │   │   ├── exception/           # Manejo de excepciones
-│   │   │   ├── config/              # Configuración (Security, etc.)
-│   │   │   └── MantenimientoApplication.java
+│   │   │   ├── MantenimientoApplication.java   ← Punto de entrada
+│   │   │   ├── DataInitializer.java            ← Siembra roles, turnos, máquinas
+│   │   │   ├── config/
+│   │   │   │   └── SecurityConfig.java         ← CORS configurado
+│   │   │   ├── controllers/
+│   │   │   │   ├── AuthController.java
+│   │   │   │   ├── MantenimientoController.java
+│   │   │   │   └── ReporteController.java
+│   │   │   ├── dto/
+│   │   │   │   ├── request/
+│   │   │   │   │   ├── ProgramarMantenimientoRequest.java
+│   │   │   │   │   └── ObservacionRequest.java
+│   │   │   │   └── response/
+│   │   │   │       ├── AvanceMantenimientoResponse.java
+│   │   │   │       ├── ActividadResponse.java
+│   │   │   │       └── ObservacionResponse.java
+│   │   │   ├── exception/
+│   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   ├── models/
+│   │   │   │   ├── enums/                      ← EstadoMantenimiento, TipoRol, etc.
+│   │   │   │   ├── ActividadMantenimiento.java
+│   │   │   │   ├── CartaGantt.java
+│   │   │   │   ├── Inventario.java
+│   │   │   │   ├── Maquina.java
+│   │   │   │   ├── Observacion.java
+│   │   │   │   ├── Rol.java
+│   │   │   │   ├── Turno.java
+│   │   │   │   └── Usuario.java
+│   │   │   ├── repositories/                   ← 8 repositorios JPA
+│   │   │   └── services/
+│   │   │       ├── MantenimientoService.java   ← Toda la lógica de negocio
+│   │   │       └── UsuarioService.java
 │   │   └── resources/
-│   │       └── application.properties
+│   │       └── application.properties          ← Configuración MariaDB
 │   └── test/
-├── pom.xml                          # Dependencias Maven
-├── mvnw.cmd                         # Maven Wrapper (Windows)
-└── README.md                        # Este archivo
+│       ├── java/                               ← 8 tests de lógica
+│       └── resources/
+│           └── application-test.properties     ← Configuración H2 para tests
+├── pom.xml                                     ← Sin Lombok, con MariaDB
+├── verificar-requisitos.sh / .bat              ← Verificador automático
+└── arrancar.sh / .bat                          ← Script de arranque
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## 🐛 Solución de problemas frecuentes
 
-### Error: "Connection refused" a MariaDB
-```
-✓ Verificar que MariaDB está corriendo
-✓ Verificar credenciales en application.properties
-✓ Verificar que el puerto 3306 es accesible
-```
-
-### Error: "Tabla no existe"
-```
-✓ Es normal, Spring crea las tablas automáticamente (ddl-auto=update)
-✓ Reiniciar la aplicación si es necesario
-```
-
-### Error: "Port 8080 already in use"
+**`Connection refused` a MariaDB**
 ```bash
-# Cambiar puerto en application.properties
-server.port=8081
+# Linux
+sudo systemctl start mariadb
+# Mac
+brew services start mariadb
+# Windows: Win+R → services.msc → iniciar MySQL80 o MariaDB
 ```
 
-### Error al compilar: "Java 26 not found"
+**`Access denied for user 'root'`**
+Edita `src/main/resources/application.properties` y cambia la contraseña.
+
+**`Port 8080 already in use`**
+Cambia en `application.properties`: `server.port=8081`
+
+**`java: cannot find symbol` al compilar**
+Verifica que `JAVA_HOME` apunta a Java 21:
 ```bash
-# Instalar Java 26 o cambiar versión en pom.xml
-# Cambiar en pom.xml: <java.version>26</java.version>
+echo $JAVA_HOME    # Linux/Mac
+echo %JAVA_HOME%   # Windows
 ```
 
----
-
-## 📞 Soporte
-
-Para reportar problemas o sugerencias:
-1. Revisar los logs en la consola
-2. Verificar la configuración de application.properties
-3. Asegurar que MariaDB está corriendo correctamente
-
----
-
-## 📄 Licencia
-
-Proyecto privado - Dulzón S.A.
-
----
-
-**Última actualización:** 2024-04-20
-**Estado:** ✅ Listo para conectar con Frontend
-
+**Tests fallan con `H2 not found`**
+```bash
+./mvnw clean test   # Limpiar cache y re-ejecutar
+```

@@ -9,24 +9,21 @@ import com.dulzonSA.mantenimiento.models.enums.TipoTurno;
 import com.dulzonSA.mantenimiento.repositories.MaquinaRepository;
 import com.dulzonSA.mantenimiento.repositories.RolRepository;
 import com.dulzonSA.mantenimiento.repositories.TurnoRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
-import java.util.List;
 
 /**
- * Siembra los datos base al arrancar la aplicación.
- * Solo inserta si no existen (idempotente).
+ * Siembra datos base al arrancar. Solo inserta si no existen (idempotente).
  */
 @Component
-@RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-    private final RolRepository    rolRepository;
-    private final TurnoRepository  turnoRepository;
-    private final MaquinaRepository maquinaRepository;
+    @Autowired private RolRepository    rolRepository;
+    @Autowired private TurnoRepository  turnoRepository;
+    @Autowired private MaquinaRepository maquinaRepository;
 
     @Override
     public void run(String... args) {
@@ -38,49 +35,49 @@ public class DataInitializer implements CommandLineRunner {
     private void seedRoles() {
         for (TipoRol tipo : TipoRol.values()) {
             if (rolRepository.findByNombre(tipo).isEmpty()) {
-                rolRepository.save(Rol.builder()
-                        .nombre(tipo)
-                        .descripcion(tipo.name())
-                        .build());
+                Rol rol = new Rol();
+                rol.setNombre(tipo);
+                rol.setDescripcion(tipo.name());
+                rolRepository.save(rol);
             }
         }
     }
 
     private void seedTurnos() {
-        List<Object[]> turnos = List.of(
-            new Object[]{ TipoTurno.MAÑANA, LocalTime.of(6, 0),  LocalTime.of(14, 0) },
-            new Object[]{ TipoTurno.TARDE,  LocalTime.of(14, 0), LocalTime.of(22, 0) },
-            new Object[]{ TipoTurno.NOCHE,  LocalTime.of(22, 0), LocalTime.of(6, 0)  }
-        );
-        for (Object[] t : turnos) {
-            if (turnoRepository.findByNombre((TipoTurno) t[0]).isEmpty()) {
-                turnoRepository.save(Turno.builder()
-                        .nombre((TipoTurno) t[0])
-                        .horaInicio((LocalTime) t[1])
-                        .horaFin((LocalTime) t[2])
-                        .build());
+        Object[][] datos = {
+            { TipoTurno.MAÑANA, LocalTime.of(6,  0), LocalTime.of(14, 0) },
+            { TipoTurno.TARDE,  LocalTime.of(14, 0), LocalTime.of(22, 0) },
+            { TipoTurno.NOCHE,  LocalTime.of(22, 0), LocalTime.of(6,  0) }
+        };
+        for (Object[] d : datos) {
+            if (turnoRepository.findByNombre((TipoTurno) d[0]).isEmpty()) {
+                Turno t = new Turno();
+                t.setNombre((TipoTurno) d[0]);
+                t.setHoraInicio((LocalTime) d[1]);
+                t.setHoraFin((LocalTime) d[2]);
+                turnoRepository.save(t);
             }
         }
     }
 
     private void seedMaquinas() {
-        List<Object[]> maquinas = List.of(
-            new Object[]{ "Deshuesadora 1",          TipoMaquina.DESHUESADORA,        "DH-001" },
-            new Object[]{ "Deshuesadora 2",          TipoMaquina.DESHUESADORA,        "DH-002" },
-            new Object[]{ "Prensa Hidráulica 1",     TipoMaquina.PRENSA,              "PR-001" },
-            new Object[]{ "Marmita de Cocción 1",    TipoMaquina.MARMITA,             "MA-001" },
-            new Object[]{ "Marmita de Cocción 2",    TipoMaquina.MARMITA,             "MA-002" },
-            new Object[]{ "Bomba Centrífuga 1",      TipoMaquina.BOMBA,               "BO-001" },
-            new Object[]{ "Mesa Enfriar/Envasar 1",  TipoMaquina.MESA_ENFRIAR_ENVASAR,"ME-001" },
-            new Object[]{ "Extractor de Cocción 1",  TipoMaquina.EXTRACTOR_COCCION,   "EC-001" }
-        );
-        for (Object[] m : maquinas) {
-            if (maquinaRepository.findByCodigoInterno((String) m[2]).isEmpty()) {
-                maquinaRepository.save(Maquina.builder()
-                        .nombre((String) m[0])
-                        .tipo((TipoMaquina) m[1])
-                        .codigoInterno((String) m[2])
-                        .build());
+        Object[][] datos = {
+            { "Deshuesadora 1",         TipoMaquina.DESHUESADORA,         "DH-001" },
+            { "Deshuesadora 2",         TipoMaquina.DESHUESADORA,         "DH-002" },
+            { "Prensa Hidráulica 1",    TipoMaquina.PRENSA,               "PR-001" },
+            { "Marmita de Cocción 1",   TipoMaquina.MARMITA,              "MA-001" },
+            { "Marmita de Cocción 2",   TipoMaquina.MARMITA,              "MA-002" },
+            { "Bomba Centrífuga 1",     TipoMaquina.BOMBA,                "BO-001" },
+            { "Mesa Enfriar/Envasar 1", TipoMaquina.MESA_ENFRIAR_ENVASAR, "ME-001" },
+            { "Extractor de Cocción 1", TipoMaquina.EXTRACTOR_COCCION,    "EC-001" }
+        };
+        for (Object[] d : datos) {
+            if (maquinaRepository.findByCodigoInterno((String) d[2]).isEmpty()) {
+                Maquina m = new Maquina();
+                m.setNombre((String) d[0]);
+                m.setTipo((TipoMaquina) d[1]);
+                m.setCodigoInterno((String) d[2]);
+                maquinaRepository.save(m);
             }
         }
     }

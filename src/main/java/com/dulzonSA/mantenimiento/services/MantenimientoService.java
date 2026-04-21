@@ -9,29 +9,27 @@ import com.dulzonSA.mantenimiento.models.*;
 import com.dulzonSA.mantenimiento.models.enums.EstadoActividad;
 import com.dulzonSA.mantenimiento.models.enums.EstadoMantenimiento;
 import com.dulzonSA.mantenimiento.repositories.*;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class MantenimientoService {
 
-    private final CartaGanttRepository cartaGanttRepository;
-    private final ActividadMantenimientoRepository actividadRepository;
-    private final ObservacionRepository observacionRepository;
-    private final MaquinaRepository maquinaRepository;
-    private final TurnoRepository turnoRepository;
-    private final UsuarioRepository usuarioRepository;
+    @Autowired private CartaGanttRepository cartaGanttRepository;
+    @Autowired private ActividadMantenimientoRepository actividadRepository;
+    @Autowired private ObservacionRepository observacionRepository;
+    @Autowired private MaquinaRepository maquinaRepository;
+    @Autowired private TurnoRepository turnoRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
 
-    // ─────────────────────────────────────────────────────────────
-    // OPERADOR: Programar una nueva mantención (ingresa la carta gantt)
-    // ─────────────────────────────────────────────────────────────
+    // ── OPERADOR: programar ─────────────────────────────────────
 
     @Transactional
     public CartaGantt programarMantenimiento(Long operadorId,
@@ -46,39 +44,37 @@ public class MantenimientoService {
         Turno turno = turnoRepository.findById(request.getTurnoId())
                 .orElseThrow(() -> new RuntimeException("Turno no encontrado: " + request.getTurnoId()));
 
-        CartaGantt carta = CartaGantt.builder()
-                .maquina(maquina)
-                .operador(operador)
-                .turno(turno)
-                .fechaProgramada(request.getFechaProgramada())
-                .estado(EstadoMantenimiento.PROGRAMADO)
-                .build();
+        CartaGantt carta = new CartaGantt();
+        carta.setMaquina(maquina);
+        carta.setOperador(operador);
+        carta.setTurno(turno);
+        carta.setFechaProgramada(request.getFechaProgramada());
+        carta.setEstado(EstadoMantenimiento.PROGRAMADO);
 
-        List<ActividadMantenimiento> actividades = request.getActividades().stream()
-                .map(a -> ActividadMantenimiento.builder()
-                        .cartaGantt(carta)
-                        .descripcion(a.getDescripcion())
-                        .orden(a.getOrden())
-                        .duracionEstimadaMinutos(a.getDuracionEstimadaMinutos())
-                        .estado(EstadoActividad.PENDIENTE)
-                        .build())
-                .collect(Collectors.toList());
-
+        List<ActividadMantenimiento> actividades = new ArrayList<>();
+        for (ProgramarMantenimientoRequest.ActividadRequest ar : request.getActividades()) {
+            ActividadMantenimiento act = new ActividadMantenimiento();
+            act.setCartaGantt(carta);
+            act.setDescripcion(ar.getDescripcion());
+            act.setOrden(ar.getOrden());
+            act.setDuracionEstimadaMinutos(ar.getDuracionEstimadaMinutos());
+            act.setEstado(EstadoActividad.PENDIENTE);
+            actividades.add(act);
+        }
         carta.setActividades(actividades);
+
         return cartaGanttRepository.save(carta);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SUPERVISOR: La cuadrilla llegó → dar inicio al proceso
-    // ─────────────────────────────────────────────────────────────
+    // ── SUPERVISOR: iniciar mantención ─────────────────────────
 
     @Transactional
     public CartaGantt iniciarMantenimiento(Long cartaGanttId) {
         CartaGantt carta = obtenerCartaOException(cartaGanttId);
 
         if (carta.getEstado() != EstadoMantenimiento.PROGRAMADO) {
-            throw new RuntimeException("La mantención no está PROGRAMADA (estado actual: "
-                    + carta.getEstado() + ")");
+            throw new RuntimeException(
+                    "La mantención no está PROGRAMADA (estado actual: " + carta.getEstado() + ")");
         }
 
         carta.setEstado(EstadoMantenimiento.EN_PROCESO);
@@ -86,9 +82,7 @@ public class MantenimientoService {
         return cartaGanttRepository.save(carta);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SUPERVISOR: Pulsa "Iniciar actividad" en el móvil
-    // ─────────────────────────────────────────────────────────────
+    // ── SUPERVISOR: iniciar actividad ──────────────────────────
 
     @Transactional
     public ActividadMantenimiento iniciarActividad(Long actividadId) {
@@ -97,10 +91,9 @@ public class MantenimientoService {
         if (actividad.getCartaGantt().getEstado() != EstadoMantenimiento.EN_PROCESO) {
             throw new RuntimeException("El proceso de mantenimiento no ha sido iniciado aún");
         }
-
         if (actividad.getEstado() != EstadoActividad.PENDIENTE) {
-            throw new RuntimeException("La actividad no está PENDIENTE (estado: "
-                    + actividad.getEstado() + ")");
+            throw new RuntimeException(
+                    "La actividad no está PENDIENTE (estado: " + actividad.getEstado() + ")");
         }
 
         actividad.setEstado(EstadoActividad.EN_PROCESO);
@@ -108,17 +101,15 @@ public class MantenimientoService {
         return actividadRepository.save(actividad);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SUPERVISOR: Pulsa "Cerrar actividad" en el móvil
-    // ─────────────────────────────────────────────────────────────
+    // ── SUPERVISOR: cerrar actividad ───────────────────────────
 
     @Transactional
     public ActividadMantenimiento cerrarActividad(Long actividadId) {
         ActividadMantenimiento actividad = obtenerActividadOException(actividadId);
 
         if (actividad.getEstado() != EstadoActividad.EN_PROCESO) {
-            throw new RuntimeException("La actividad no está EN_PROCESO (estado: "
-                    + actividad.getEstado() + ")");
+            throw new RuntimeException(
+                    "La actividad no está EN_PROCESO (estado: " + actividad.getEstado() + ")");
         }
 
         actividad.setEstado(EstadoActividad.COMPLETADA);
@@ -126,9 +117,7 @@ public class MantenimientoService {
         return actividadRepository.save(actividad);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SUPERVISOR: Registrar observación sobre una actividad
-    // ─────────────────────────────────────────────────────────────
+    // ── SUPERVISOR: observación en actividad ───────────────────
 
     @Transactional
     public Observacion registrarObservacionEnActividad(Long actividadId,
@@ -136,21 +125,18 @@ public class MantenimientoService {
                                                        ObservacionRequest request) {
         ActividadMantenimiento actividad = obtenerActividadOException(actividadId);
         Usuario supervisor = obtenerUsuarioOException(supervisorId);
-        validarObservacion(request);
+        validarTextoObservacion(request.getTexto());
 
-        Observacion obs = Observacion.builder()
-                .actividad(actividad)
-                .supervisor(supervisor)
-                .texto(request.getTexto())
-                .fechaHora(LocalDateTime.now())
-                .build();
+        Observacion obs = new Observacion();
+        obs.setActividad(actividad);
+        obs.setSupervisor(supervisor);
+        obs.setTexto(request.getTexto());
+        obs.setFechaHora(LocalDateTime.now());
 
         return observacionRepository.save(obs);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SUPERVISOR: Cerrar el proceso completo + observaciones finales
-    // ─────────────────────────────────────────────────────────────
+    // ── SUPERVISOR: terminar mantención ────────────────────────
 
     @Transactional
     public CartaGantt terminarMantenimiento(Long cartaGanttId,
@@ -172,13 +158,12 @@ public class MantenimientoService {
 
         if (observacionesCierre != null && !observacionesCierre.isEmpty()) {
             for (ObservacionRequest req : observacionesCierre) {
-                validarObservacion(req);
-                Observacion obs = Observacion.builder()
-                        .cartaGantt(carta)
-                        .supervisor(supervisor)
-                        .texto(req.getTexto())
-                        .fechaHora(LocalDateTime.now())
-                        .build();
+                validarTextoObservacion(req.getTexto());
+                Observacion obs = new Observacion();
+                obs.setCartaGantt(carta);
+                obs.setSupervisor(supervisor);
+                obs.setTexto(req.getTexto());
+                obs.setFechaHora(LocalDateTime.now());
                 carta.getObservacionesGenerales().add(obs);
             }
         }
@@ -188,9 +173,7 @@ public class MantenimientoService {
         return cartaGanttRepository.save(carta);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // TODOS: Vista de avance (planificado vs real)
-    // ─────────────────────────────────────────────────────────────
+    // ── CONSULTAS ──────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public AvanceMantenimientoResponse obtenerAvance(Long cartaGanttId) {
@@ -209,46 +192,50 @@ public class MantenimientoService {
                 .mapToLong(ActividadMantenimiento::getDesviacionMinutos)
                 .sum();
 
-        return AvanceMantenimientoResponse.builder()
-                .cartaGanttId(carta.getId())
-                .maquinaNombre(carta.getMaquina().getNombre())
-                .maquinaTipo(carta.getMaquina().getTipo().name())
-                .codigoInternoMaquina(carta.getMaquina().getCodigoInterno())
-                .turnoNombre(carta.getTurno().getNombre().name())
-                .fechaProgramada(carta.getFechaProgramada())
-                .operadorNombre(carta.getOperador().getNombre())
-                .fechaInicioReal(carta.getFechaInicioReal())
-                .fechaFinReal(carta.getFechaFinReal())
-                .estado(carta.getEstado())
-                .totalActividades(actividades.size())
-                .actividadesCompletadas((int) completadas)
-                .porcentajeAvance(porcentaje)
-                .desviacionTotalMinutos(desviacionTotal)
-                .actividades(actividades.stream().map(this::mapActividad).collect(Collectors.toList()))
-                .observacionesGenerales(carta.getObservacionesGenerales().stream()
-                        .map(this::mapObservacion).collect(Collectors.toList()))
-                .build();
+        AvanceMantenimientoResponse resp = new AvanceMantenimientoResponse();
+        resp.setCartaGanttId(carta.getId());
+        resp.setMaquinaNombre(carta.getMaquina().getNombre());
+        resp.setMaquinaTipo(carta.getMaquina().getTipo().name());
+        resp.setCodigoInternoMaquina(carta.getMaquina().getCodigoInterno());
+        resp.setTurnoNombre(carta.getTurno().getNombre().name());
+        resp.setFechaProgramada(carta.getFechaProgramada());
+        resp.setOperadorNombre(carta.getOperador().getNombre());
+        resp.setFechaInicioReal(carta.getFechaInicioReal());
+        resp.setFechaFinReal(carta.getFechaFinReal());
+        resp.setEstado(carta.getEstado());
+        resp.setTotalActividades(actividades.size());
+        resp.setActividadesCompletadas((int) completadas);
+        resp.setPorcentajeAvance(porcentaje);
+        resp.setDesviacionTotalMinutos(desviacionTotal);
+        resp.setActividades(actividades.stream().map(this::mapActividad).collect(Collectors.toList()));
+        resp.setObservacionesGenerales(carta.getObservacionesGenerales()
+                .stream().map(this::mapObservacion).collect(Collectors.toList()));
+
+        return resp;
     }
 
     @Transactional(readOnly = true)
     public List<AvanceMantenimientoResponse> listarEnProceso() {
         return cartaGanttRepository.findEnProceso().stream()
-                .map(c -> obtenerAvance(c.getId())).collect(Collectors.toList());
+                .map(c -> obtenerAvance(c.getId()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<AvanceMantenimientoResponse> listarPorEstado(EstadoMantenimiento estado) {
         return cartaGanttRepository.findByEstado(estado).stream()
-                .map(c -> obtenerAvance(c.getId())).collect(Collectors.toList());
+                .map(c -> obtenerAvance(c.getId()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<AvanceMantenimientoResponse> listarProgramadasHoy() {
         return cartaGanttRepository.findProgramadasHoy(LocalDate.now()).stream()
-                .map(c -> obtenerAvance(c.getId())).collect(Collectors.toList());
+                .map(c -> obtenerAvance(c.getId()))
+                .collect(Collectors.toList());
     }
 
-    // ─── helpers privados ────────────────────────────────────────
+    // ── helpers privados ────────────────────────────────────────
 
     private CartaGantt obtenerCartaOException(Long id) {
         return cartaGanttRepository.findById(id)
@@ -265,33 +252,33 @@ public class MantenimientoService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
     }
 
-    private void validarObservacion(ObservacionRequest req) {
-        if (req.getTexto() == null || req.getTexto().isBlank()) {
-            throw new RuntimeException("La observación no puede estar vacía");
+    private void validarTextoObservacion(String texto) {
+        if (texto == null || texto.isBlank()) {
+            throw new RuntimeException("El texto de la observación no puede estar vacío");
         }
     }
 
     private ActividadResponse mapActividad(ActividadMantenimiento a) {
-        return ActividadResponse.builder()
-                .id(a.getId())
-                .descripcion(a.getDescripcion())
-                .orden(a.getOrden())
-                .duracionEstimadaMinutos(a.getDuracionEstimadaMinutos())
-                .fechaInicioReal(a.getFechaInicioReal())
-                .fechaFinReal(a.getFechaFinReal())
-                .estado(a.getEstado())
-                .desviacionMinutos(a.getDesviacionMinutos())
-                .observaciones(a.getObservaciones().stream()
-                        .map(this::mapObservacion).collect(Collectors.toList()))
-                .build();
+        ActividadResponse r = new ActividadResponse();
+        r.setId(a.getId());
+        r.setDescripcion(a.getDescripcion());
+        r.setOrden(a.getOrden());
+        r.setDuracionEstimadaMinutos(a.getDuracionEstimadaMinutos());
+        r.setFechaInicioReal(a.getFechaInicioReal());
+        r.setFechaFinReal(a.getFechaFinReal());
+        r.setEstado(a.getEstado());
+        r.setDesviacionMinutos(a.getDesviacionMinutos());
+        r.setObservaciones(a.getObservaciones().stream()
+                .map(this::mapObservacion).collect(Collectors.toList()));
+        return r;
     }
 
     private ObservacionResponse mapObservacion(Observacion o) {
-        return ObservacionResponse.builder()
-                .id(o.getId())
-                .texto(o.getTexto())
-                .supervisorNombre(o.getSupervisor().getNombre())
-                .fechaHora(o.getFechaHora())
-                .build();
+        ObservacionResponse r = new ObservacionResponse();
+        r.setId(o.getId());
+        r.setTexto(o.getTexto());
+        r.setSupervisorNombre(o.getSupervisor().getNombre());
+        r.setFechaHora(o.getFechaHora());
+        return r;
     }
 }

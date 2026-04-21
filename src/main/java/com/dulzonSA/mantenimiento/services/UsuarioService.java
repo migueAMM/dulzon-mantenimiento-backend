@@ -29,11 +29,10 @@ public class UsuarioService {
         Rol rol = rolRepository.findByNombre(tipoRol)
                 .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + tipoRol));
 
-        // Guardar password en texto plano (para desarrollo)
         Usuario usuario = new Usuario();
         usuario.setNombre(nombre);
         usuario.setEmail(email);
-        usuario.setPassword(password);
+        usuario.setPassword(password);   // texto plano — cambiar a BCrypt en producción
         usuario.setRol(rol);
         usuario.setActivo(true);
 
@@ -49,7 +48,6 @@ public class UsuarioService {
             throw new RuntimeException("Usuario inactivo");
         }
 
-        // Comparar contraseña en texto plano (para desarrollo)
         if (!usuario.getPassword().equals(password)) {
             throw new RuntimeException("Credenciales inválidas");
         }
@@ -65,7 +63,7 @@ public class UsuarioService {
     @Transactional
     public void desactivarUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
     }

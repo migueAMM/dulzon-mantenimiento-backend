@@ -2,8 +2,6 @@ package com.dulzonSA.mantenimiento.models;
 
 import com.dulzonSA.mantenimiento.models.enums.EstadoMantenimiento;
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,54 +9,81 @@ import java.util.List;
 
 @Entity
 @Table(name = "cartas_gantt")
-@Getter @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class CartaGantt {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Máquina a mantener
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maquina_id", nullable = false)
     private Maquina maquina;
 
-    // Operador que programó la mantención
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operador_id", nullable = false)
     private Usuario operador;
 
-    // Turno en que inicia la mantención (según lo informado por empresa mantenedora)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "turno_id", nullable = false)
     private Turno turno;
 
-    // Fecha programada de inicio (informada por empresa mantenedora)
     @Column(nullable = false)
     private LocalDate fechaProgramada;
 
-    // Registro exacto cuando el supervisor da inicio real al proceso
     private LocalDateTime fechaInicioReal;
-
-    // Registro exacto cuando el supervisor cierra el proceso
     private LocalDateTime fechaFinReal;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private EstadoMantenimiento estado = EstadoMantenimiento.PROGRAMADO;
 
-    // Actividades que componen esta mantención (orden importa)
     @OneToMany(mappedBy = "cartaGantt", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orden ASC")
-    @Builder.Default
     private List<ActividadMantenimiento> actividades = new ArrayList<>();
 
-    // Observaciones generales al cierre del proceso
     @OneToMany(mappedBy = "cartaGantt", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
     private List<Observacion> observacionesGenerales = new ArrayList<>();
+
+    public CartaGantt() {}
+
+    // Getters y Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Maquina getMaquina() { return maquina; }
+    public void setMaquina(Maquina maquina) { this.maquina = maquina; }
+
+    public Usuario getOperador() { return operador; }
+    public void setOperador(Usuario operador) { this.operador = operador; }
+
+    public Turno getTurno() { return turno; }
+    public void setTurno(Turno turno) { this.turno = turno; }
+
+    public LocalDate getFechaProgramada() { return fechaProgramada; }
+    public void setFechaProgramada(LocalDate fechaProgramada) {
+        this.fechaProgramada = fechaProgramada;
+    }
+
+    public LocalDateTime getFechaInicioReal() { return fechaInicioReal; }
+    public void setFechaInicioReal(LocalDateTime fechaInicioReal) {
+        this.fechaInicioReal = fechaInicioReal;
+    }
+
+    public LocalDateTime getFechaFinReal() { return fechaFinReal; }
+    public void setFechaFinReal(LocalDateTime fechaFinReal) {
+        this.fechaFinReal = fechaFinReal;
+    }
+
+    public EstadoMantenimiento getEstado() { return estado; }
+    public void setEstado(EstadoMantenimiento estado) { this.estado = estado; }
+
+    public List<ActividadMantenimiento> getActividades() { return actividades; }
+    public void setActividades(List<ActividadMantenimiento> actividades) {
+        this.actividades = actividades;
+    }
+
+    public List<Observacion> getObservacionesGenerales() { return observacionesGenerales; }
+    public void setObservacionesGenerales(List<Observacion> observacionesGenerales) {
+        this.observacionesGenerales = observacionesGenerales;
+    }
 }
