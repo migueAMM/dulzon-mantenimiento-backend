@@ -2,10 +2,9 @@ package com.dulzonSA.mantenimiento.controllers;
 
 import com.dulzonSA.mantenimiento.dto.request.ObservacionRequest;
 import com.dulzonSA.mantenimiento.dto.request.ProgramarMantenimientoRequest;
+import com.dulzonSA.mantenimiento.dto.response.AccionMantenimientoResponse;
 import com.dulzonSA.mantenimiento.dto.response.AvanceMantenimientoResponse;
-import com.dulzonSA.mantenimiento.models.ActividadMantenimiento;
-import com.dulzonSA.mantenimiento.models.CartaGantt;
-import com.dulzonSA.mantenimiento.models.Observacion;
+import com.dulzonSA.mantenimiento.dto.response.ObservacionResponse;
 import com.dulzonSA.mantenimiento.models.enums.EstadoMantenimiento;
 import com.dulzonSA.mantenimiento.services.MantenimientoService;
 import jakarta.validation.Valid;
@@ -15,6 +14,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controlador REST para operaciones de mantenimiento.
+ *
+ * CORRECCIÓN APLICADA:
+ * Todos los endpoints ahora retornan DTOs (no entidades JPA) para evitar el error
+ * "Type definition error: ByteBuddyInterceptor" causado por proxies lazy de Hibernate.
+ *
+ * Endpoints de acción (iniciar/cerrar) → AccionMantenimientoResponse
+ * Endpoints de consulta y terminación   → AvanceMantenimientoResponse
+ */
 @RestController
 @RequestMapping("/api/mantenimiento")
 public class MantenimientoController {
@@ -22,39 +31,54 @@ public class MantenimientoController {
     @Autowired
     private MantenimientoService mantenimientoService;
 
-    // ── OPERADOR ──────────────────────────────────────────────
+    // ── OPERADOR ──────────────────────────────────────────────────────────────
 
-    /** POST /api/mantenimiento/programar?operadorId=1 */
+    /**
+     * POST /api/mantenimiento/programar?operadorId=1
+     * Retorna AvanceMantenimientoResponse para que el front tenga el estado inicial completo.
+     */
     @PostMapping("/programar")
-    public ResponseEntity<CartaGantt> programar(
+    public ResponseEntity<AvanceMantenimientoResponse> programar(
             @RequestParam Long operadorId,
             @Valid @RequestBody ProgramarMantenimientoRequest request) {
         return ResponseEntity.ok(mantenimientoService.programarMantenimiento(operadorId, request));
     }
 
-    // ── SUPERVISOR ────────────────────────────────────────────
+    // ── SUPERVISOR ────────────────────────────────────────────────────────────
 
-    /** PUT /api/mantenimiento/{id}/iniciar */
+    /**
+     * PUT /api/mantenimiento/{id}/iniciar
+     * Retorna AccionMantenimientoResponse (DTO plano, sin proxies Hibernate).
+     */
     @PutMapping("/{id}/iniciar")
-    public ResponseEntity<CartaGantt> iniciarMantenimiento(@PathVariable Long id) {
+    public ResponseEntity<AccionMantenimientoResponse> iniciarMantenimiento(@PathVariable Long id) {
         return ResponseEntity.ok(mantenimientoService.iniciarMantenimiento(id));
     }
 
-    /** PUT /api/mantenimiento/actividad/{actividadId}/iniciar */
+    /**
+     * PUT /api/mantenimiento/actividad/{actividadId}/iniciar
+     * Retorna AccionMantenimientoResponse con estado actualizado de la actividad.
+     */
     @PutMapping("/actividad/{actividadId}/iniciar")
-    public ResponseEntity<ActividadMantenimiento> iniciarActividad(@PathVariable Long actividadId) {
+    public ResponseEntity<AccionMantenimientoResponse> iniciarActividad(@PathVariable Long actividadId) {
         return ResponseEntity.ok(mantenimientoService.iniciarActividad(actividadId));
     }
 
-    /** PUT /api/mantenimiento/actividad/{actividadId}/cerrar */
+    /**
+     * PUT /api/mantenimiento/actividad/{actividadId}/cerrar
+     * Retorna AccionMantenimientoResponse con estado COMPLETADA y desviación calculada.
+     */
     @PutMapping("/actividad/{actividadId}/cerrar")
-    public ResponseEntity<ActividadMantenimiento> cerrarActividad(@PathVariable Long actividadId) {
+    public ResponseEntity<AccionMantenimientoResponse> cerrarActividad(@PathVariable Long actividadId) {
         return ResponseEntity.ok(mantenimientoService.cerrarActividad(actividadId));
     }
 
-    /** POST /api/mantenimiento/actividad/{actividadId}/observacion?supervisorId=2 */
+    /**
+     * POST /api/mantenimiento/actividad/{actividadId}/observacion?supervisorId=2
+     * Retorna ObservacionResponse (DTO plano).
+     */
     @PostMapping("/actividad/{actividadId}/observacion")
-    public ResponseEntity<Observacion> registrarObservacion(
+    public ResponseEntity<ObservacionResponse> registrarObservacion(
             @PathVariable Long actividadId,
             @RequestParam Long supervisorId,
             @Valid @RequestBody ObservacionRequest request) {
@@ -62,9 +86,13 @@ public class MantenimientoController {
                 mantenimientoService.registrarObservacionEnActividad(actividadId, supervisorId, request));
     }
 
-    /** PUT /api/mantenimiento/{id}/terminar?supervisorId=2 */
+    /**
+     * PUT /api/mantenimiento/{id}/terminar?supervisorId=2
+     * Retorna AvanceMantenimientoResponse completo para que el front actualice toda la vista
+     * y oculte correctamente las opciones de "terminar actividad".
+     */
     @PutMapping("/{id}/terminar")
-    public ResponseEntity<CartaGantt> terminarMantenimiento(
+    public ResponseEntity<AvanceMantenimientoResponse> terminarMantenimiento(
             @PathVariable Long id,
             @RequestParam Long supervisorId,
             @RequestBody(required = false) List<ObservacionRequest> observaciones) {
@@ -72,7 +100,7 @@ public class MantenimientoController {
                 mantenimientoService.terminarMantenimiento(id, supervisorId, observaciones));
     }
 
-    // ── TODOS ─────────────────────────────────────────────────
+    // ── TODOS ─────────────────────────────────────────────────────────────────
 
     /** GET /api/mantenimiento/{id}/avance */
     @GetMapping("/{id}/avance")

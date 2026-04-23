@@ -15,40 +15,70 @@
     <artifactId>mantenimiento</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>mantenimiento</name>
-    <description>Sistema de control de mantenimiento Dulzon S.A. - Sin Lombok</description>
+    <description>Sistema de control de mantenimiento Dulzon S.A.</description>
 
     <properties>
         <java.version>21</java.version>
     </properties>
 
     <dependencies>
+
+        <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
+        <!-- MariaDB driver -->
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Validación Bean -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <!--
+            CORRECCIÓN CRÍTICA:
+            jackson-datatype-hibernate6 permite que Jackson serialice entidades Hibernate
+            sin lanzar "ByteBuddyInterceptor" al encontrar proxies lazy no inicializados.
+            Compatible con Hibernate 6.x que usa Spring Boot 3.x.
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-hibernate6</artifactId>
+        </dependency>
+
+        <!-- Soporte para LocalDate/LocalDateTime en JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <!-- H2 solo para tests -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -67,4 +97,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

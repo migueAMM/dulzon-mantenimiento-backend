@@ -2,6 +2,7 @@ package com.dulzonSA.mantenimiento.services;
 
 import com.dulzonSA.mantenimiento.dto.request.ObservacionRequest;
 import com.dulzonSA.mantenimiento.dto.request.ProgramarMantenimientoRequest;
+import com.dulzonSA.mantenimiento.dto.response.AccionMantenimientoResponse;
 import com.dulzonSA.mantenimiento.dto.response.ActividadResponse;
 import com.dulzonSA.mantenimiento.dto.response.AvanceMantenimientoResponse;
 import com.dulzonSA.mantenimiento.dto.response.ObservacionResponse;
@@ -22,21 +23,23 @@ import java.util.stream.Collectors;
 @Service
 public class MantenimientoService {
 
-    @Autowired private CartaGanttRepository cartaGanttRepository;
+    @Autowired private CartaGanttRepository        cartaGanttRepository;
     @Autowired private ActividadMantenimientoRepository actividadRepository;
-    @Autowired private ObservacionRepository observacionRepository;
-    @Autowired private MaquinaRepository maquinaRepository;
-    @Autowired private TurnoRepository turnoRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private ObservacionRepository        observacionRepository;
+    @Autowired private MaquinaRepository            maquinaRepository;
+    @Autowired private TurnoRepository              turnoRepository;
+    @Autowired private UsuarioRepository            usuarioRepository;
 
-    // ── OPERADOR: programar ─────────────────────────────────────
+    // ── OPERADOR: programar ──────────────────────────────────────────────────
 
+    /**
+     * Crea una nueva CartaGantt con sus actividades.
+     * Retorna el DTO de avance para que el front no reciba proxies Hibernate.
+     */
     @Transactional
-    public CartaGantt programarMantenimiento(Long operadorId,
-                                             ProgramarMantenimientoRequest request) {
-
-        Usuario operador = usuarioRepository.findById(operadorId)
-                .orElseThrow(() -> new RuntimeException("Operador no encontrado: " + operadorId));
+    public AvanceMantenimientoResponse programarMantenimiento(Long operadorId,
+                                                              ProgramarMantenimientoRequest request) {
+        Usuario operador = obtenerUsuarioOException(operadorId);
 
         Maquina maquina = maquinaRepository.findById(request.getMaquinaId())
                 .orElseThrow(() -> new RuntimeException("Máquina no encontrada: " + request.getMaquinaId()));
@@ -63,13 +66,18 @@ public class MantenimientoService {
         }
         carta.setActividades(actividades);
 
-        return cartaGanttRepository.save(carta);
+        CartaGantt guardada = cartaGanttRepository.save(carta);
+        return obtenerAvance(guardada.getId());
     }
 
-    // ── SUPERVISOR: iniciar mantención ─────────────────────────
+    // ── SUPERVISOR: iniciar mantención ───────────────────────────────────────
 
+    /**
+     * Cambia estado a EN_PROCESO.
+     * Retorna AccionMantenimientoResponse (DTO plano) para evitar ByteBuddyInterceptor.
+     */
     @Transactional
-    public CartaGantt iniciarMantenimiento(Long cartaGanttId) {
+    public AccionMantenimientoResponse iniciarMantenimiento(Long cartaGanttId) {
         CartaGantt carta = obtenerCartaOException(cartaGanttId);
 
         if (carta.getEstado() != EstadoMantenimiento.PROGRAMADO) {
@@ -79,13 +87,23 @@ public class MantenimientoService {
 
         carta.setEstado(EstadoMantenimiento.EN_PROCESO);
         carta.setFechaInicioReal(LocalDateTime.now());
-        return cartaGanttRepository.save(carta);
+        cartaGanttRepository.save(carta);
+
+        return AccionMantenimientoResponse.deMantenimiento(
+                carta.getId(),
+                carta.getEstado(),
+                carta.getFechaInicioReal(),
+                carta.getFechaFinReal());
     }
 
-    // ── SUPERVISOR: iniciar actividad ──────────────────────────
+    // ── SUPERVISOR: iniciar actividad ────────────────────────────────────────
 
+    /**
+     * Cambia la actividad a EN_PROCESO.
+     * Retorna AccionMantenimientoResponse para evitar proxies Hibernate en la serialización.
+     */
     @Transactional
-    public ActividadMantenimiento iniciarActividad(Long actividadId) {
+    public AccionMantenimientoResponse iniciarActividad(Long actividadId) {
         ActividadMantenimiento actividad = obtenerActividadOException(actividadId);
 
         if (actividad.getCartaGantt().getEstado() != EstadoMantenimiento.EN_PROCESO) {
@@ -98,13 +116,24 @@ public class MantenimientoService {
 
         actividad.setEstado(EstadoActividad.EN_PROCESO);
         actividad.setFechaInicioReal(LocalDateTime.now());
-        return actividadRepository.save(actividad);
+        actividadRepository.save(actividad);
+
+        return AccionMantenimientoResponse.deActividad(
+                actividad.getId(),
+                actividad.getEstado(),
+                actividad.getFechaInicioReal(),
+                actividad.getFechaFinReal(),
+                actividad.getDesviacionMinutos());
     }
 
-    // ── SUPERVISOR: cerrar actividad ───────────────────────────
+    // ── SUPERVISOR: cerrar actividad ─────────────────────────────────────────
 
+    /**
+     * Cambia la actividad a COMPLETADA.
+     * Retorna AccionMantenimientoResponse para evitar proxies Hibernate.
+     */
     @Transactional
-    public ActividadMantenimiento cerrarActividad(Long actividadId) {
+    public AccionMantenimientoResponse cerrarActividad(Long actividadId) {
         ActividadMantenimiento actividad = obtenerActividadOException(actividadId);
 
         if (actividad.getEstado() != EstadoActividad.EN_PROCESO) {
@@ -114,15 +143,22 @@ public class MantenimientoService {
 
         actividad.setEstado(EstadoActividad.COMPLETADA);
         actividad.setFechaFinReal(LocalDateTime.now());
-        return actividadRepository.save(actividad);
+        actividadRepository.save(actividad);
+
+        return AccionMantenimientoResponse.deActividad(
+                actividad.getId(),
+                actividad.getEstado(),
+                actividad.getFechaInicioReal(),
+                actividad.getFechaFinReal(),
+                actividad.getDesviacionMinutos());
     }
 
-    // ── SUPERVISOR: observación en actividad ───────────────────
+    // ── SUPERVISOR: observación en actividad ─────────────────────────────────
 
     @Transactional
-    public Observacion registrarObservacionEnActividad(Long actividadId,
-                                                       Long supervisorId,
-                                                       ObservacionRequest request) {
+    public ObservacionResponse registrarObservacionEnActividad(Long actividadId,
+                                                               Long supervisorId,
+                                                               ObservacionRequest request) {
         ActividadMantenimiento actividad = obtenerActividadOException(actividadId);
         Usuario supervisor = obtenerUsuarioOException(supervisorId);
         validarTextoObservacion(request.getTexto());
@@ -132,16 +168,24 @@ public class MantenimientoService {
         obs.setSupervisor(supervisor);
         obs.setTexto(request.getTexto());
         obs.setFechaHora(LocalDateTime.now());
+        observacionRepository.save(obs);
 
-        return observacionRepository.save(obs);
+        // Retorna DTO plano
+        return mapObservacion(obs);
     }
 
-    // ── SUPERVISOR: terminar mantención ────────────────────────
+    // ── SUPERVISOR: terminar mantención ──────────────────────────────────────
 
+    /**
+     * Finaliza la mantención.
+     * Retorna AvanceMantenimientoResponse completo para que el front actualice todo el estado.
+     * Esto también resuelve el bug de "sigue mostrando opción de terminar": el front
+     * debe usar el campo `estado` del response para ocultar controles.
+     */
     @Transactional
-    public CartaGantt terminarMantenimiento(Long cartaGanttId,
-                                            Long supervisorId,
-                                            List<ObservacionRequest> observacionesCierre) {
+    public AvanceMantenimientoResponse terminarMantenimiento(Long cartaGanttId,
+                                                             Long supervisorId,
+                                                             List<ObservacionRequest> observacionesCierre) {
         CartaGantt carta = obtenerCartaOException(cartaGanttId);
         Usuario supervisor = obtenerUsuarioOException(supervisorId);
 
@@ -170,10 +214,13 @@ public class MantenimientoService {
 
         carta.setEstado(EstadoMantenimiento.TERMINADO);
         carta.setFechaFinReal(LocalDateTime.now());
-        return cartaGanttRepository.save(carta);
+        CartaGantt guardada = cartaGanttRepository.save(carta);
+
+        // Retorna DTO completo — el front puede actualizar toda la vista con este response
+        return obtenerAvance(guardada.getId());
     }
 
-    // ── CONSULTAS ──────────────────────────────────────────────
+    // ── CONSULTAS ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public AvanceMantenimientoResponse obtenerAvance(Long cartaGanttId) {
@@ -235,7 +282,7 @@ public class MantenimientoService {
                 .collect(Collectors.toList());
     }
 
-    // ── helpers privados ────────────────────────────────────────
+    // ── helpers privados ──────────────────────────────────────────────────────
 
     private CartaGantt obtenerCartaOException(Long id) {
         return cartaGanttRepository.findById(id)

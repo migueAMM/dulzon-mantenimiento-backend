@@ -1,6 +1,7 @@
 package com.dulzonSA.mantenimiento.models;
 
 import com.dulzonSA.mantenimiento.models.enums.EstadoMantenimiento;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "cartas_gantt")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class CartaGantt {
 
     @Id

@@ -1,5 +1,6 @@
 package com.dulzonSA.mantenimiento.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,6 +12,7 @@ public class Observacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actividad_id")
     private ActividadMantenimiento actividad;

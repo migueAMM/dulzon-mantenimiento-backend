@@ -1,6 +1,8 @@
 package com.dulzonSA.mantenimiento.models;
 
 import com.dulzonSA.mantenimiento.models.enums.EstadoActividad;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -9,12 +11,14 @@ import java.util.List;
 
 @Entity
 @Table(name = "actividades_mantenimiento")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ActividadMantenimiento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore // <--- ¡Añade esta línea!
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "carta_gantt_id", nullable = false)
     private CartaGantt cartaGantt;
